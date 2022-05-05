@@ -48,8 +48,10 @@ class Queue extends EventEmitter {
         return (error, result) => {
             if(error){
                 this._moveJobStatus(job, JOB_STATUS.ACTIVE, JOB_STATUS.FAILED);
-                this.emit(QUEUE_EVENTS.FAILED, job.jobId, error)
-                throw new error;
+                this.emit(QUEUE_EVENTS.FAILED, job.jobId, error);
+                this.runNextJob();
+                return;
+                // throw error;
             }
             this._moveJobStatus(job, JOB_STATUS.ACTIVE, JOB_STATUS.COMPLETED);
             this.emit(QUEUE_EVENTS.COMPLETED, job.jobId, result)
@@ -58,7 +60,7 @@ class Queue extends EventEmitter {
     }
     runNextJob = () => {
         if(this._worker === null) return;
-        console.log(`waiting: ${this.getWaitCount()} active: ${this.getActiveCount()} completed: ${this.getCompletedCount()}`)
+        console.log(`waiting: ${this.getWaitCount()} active: ${this.getActiveCount()} completed: ${this.getCompletedCount()} failed: ${this.getFailedCount()}`)
         if(this.getActive().length >= this._concurrency) return;
         const nextJob = this._getNext();
         if(nextJob === undefined){
@@ -66,7 +68,7 @@ class Queue extends EventEmitter {
         } else {
             this._setJobStatus(nextJob, JOB_STATUS.ACTIVE);
             nextJob.on(JOB_EVENTS.PROGRESS, progress => this.emit(QUEUE_EVENTS.PROGRESS, nextJob, progress));
-            this.emit('_runNextJob', nextJob, this.done(nextJob));
+            this.emit(QUEUE_EVENTS.ACTIVE, nextJob, this.done(nextJob));
         }
     }
     getJob = jobId => this.jobs.find(job => job.jobId === jobId);
@@ -103,7 +105,7 @@ class Queue extends EventEmitter {
         this._concurrency = concurrency;
         const registered = this._registerWorker(worker);
         if(registered){
-            this.on('_runNextJob', this._worker);
+            this.on(QUEUE_EVENTS.ACTIVE, this._worker);
             // invoke job which added before calling process()
             this.runNextJob();
         } else {

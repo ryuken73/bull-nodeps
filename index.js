@@ -14,21 +14,23 @@ const createStep = (totalValue, count) => {
     return result;
 }
 
-const ffmpegQueue = createQueue('ffmpeg');
-ffmpegQueue.on('error', error => console.log('errored:', error));
-ffmpegQueue.on('waiting', jobId => console.log('waiting:', jobId));
-ffmpegQueue.on('drained', () => console.log('drained'));
-ffmpegQueue.on('progress', (job, progress) => console.log(`${job.jobId}: ${progress}`))
-ffmpegQueue.on('completed', (jobId, result) => console.log(`${jobId}: ${result}`))
+/*
+const timerQueue = createQueue('timer');
+timerQueue.on('error', error => console.log('errored:', error));
+timerQueue.on('waiting', jobId => console.log('waiting:', jobId));
+timerQueue.on('active', job => console.log('active:', job.jobId));
+timerQueue.on('drained', () => console.log('drained'));
+timerQueue.on('progress', (job, progress) => console.log(`${job.jobId}: ${progress}`))
+timerQueue.on('completed', (jobId, result) => console.log(`${jobId}: ${result}`))
 
 const job1 = { totalRunningTime: 20000 };
 const job2 = { totalRunningTime: 10000 };
 
 // adding job before handler should works!
-ffmpegQueue.add({ data: job1 });
+timerQueue.add({ data: job1 });
 
 try {
-    ffmpegQueue.process(5, (job, done) => {
+    timerQueue.process(1, (job, done) => {
         console.log(job.jobId, job.data, done);
         const {totalRunningTime} = job.data;
         const stepValues = createStep(totalRunningTime, 10);
@@ -45,15 +47,51 @@ try {
         })
     })
     // invoking process twice, throw error
-    // ffmpegQueue.process((job, done) => {});
+    // timerQueue.process((job, done) => {});
 } catch(err) {
     console.log(err);
 }
 
 
-ffmpegQueue.add({ data: job2 });
+timerQueue.add({ data: job2 });
+*/
+
+
+const cpQueue = createQueue('childProcess');
+cpQueue.on('error', error => console.log('errored:', error));
+cpQueue.on('waiting', jobId => console.log('waiting:', jobId));
+cpQueue.on('active', job => console.log('active:', job.jobId));
+cpQueue.on('drained', () => console.log('drained'));
+cpQueue.on('progress', (job, progress) => console.log(`${job.jobId}: ${progress}`))
+cpQueue.on('completed', (jobId, result) => console.log(`${jobId}: ${result}`))
+
+const listdir1 = {cmd: 'ls', args:['-l', 'c:/']}
+const listdir2 = {cmd: 'ls', args:['-l', 'd:/']}
+const listdir3 = {cmd: 'ls', args:['-l', 'd:/temp']}
+
+cpQueue.add({data: listdir1})
+cpQueue.add({data: listdir2})
+
+const cp = require('child_process');
+try {
+    cpQueue.process(3, (job, done) => {
+        try {
+            console.log('jobInfo: ', job.data);
+            const listJob = cp.spawn(job.data.cmd, job.data.args);
+            listJob.stdout.on('data', data => console.log(data.toString()))
+            listJob.on('close', () => done(null, 'job done'))  ;
+            listJob.on('error', done);
+        } catch(err){
+            console.log('errored:',err);
+            done(err);
+        }
+    })
+} catch(err){
+    console.log(err);
+}
+
+cpQueue.add({data: listdir3})
 
 process.stdin.on('data', data => {
-    ffmpegQueue.add({data: {totalRunningTime: parseInt(data.toString())}});
+    cpQueue.add({data: {totalRunningTime: parseInt(data.toString())}});
 });
-

@@ -11,6 +11,7 @@ class Job extends EventEmitter {
         this.data = job.data;
         this._progress = 0;
         this._logs = [];
+        this._priority = job._priority || 999;
         this._ownQueue = queue;
     }
     progress(percent){
