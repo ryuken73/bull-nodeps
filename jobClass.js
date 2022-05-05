@@ -1,22 +1,17 @@
 const { EventEmitter } = require('events');
-const {JOB_STATUS, JOB_EVENTS} = require('./constants');
+const { JOB_EVENTS} = require('./constants');
 
 const getNextId = () => Date.now();
 
 class Job extends EventEmitter {
-    constructor(job){
+    constructor(job, queue){
         super();
         console.log(job)
         this.jobId = job.jobId || getNextId();
         this.data = job.data;
         this._progress = 0;
         this._logs = [];
-        this._status = JOB_STATUS.WAITING;
-    }
-    status(status){
-        if(status === undefined) return this._status;
-        this._status = status;
-        this.emit(this._status, this.jobId)
+        this._ownQueue = queue;
     }
     progress(percent){
         if(percent === undefined) return this._progress;
@@ -29,8 +24,8 @@ class Job extends EventEmitter {
     }
 }
 
-const createJob = jobInfo => {
-    return new Job(jobInfo)
+const createJob = (jobInfo, queue) => {
+    return new Job(jobInfo, queue)
 }
 
 module.exports = createJob;

@@ -11,6 +11,13 @@ module.exports = {
         FAILED: 'faild',
         DELAYED: 'delayed'
     },
+    // JOB_LISTS: {
+    //     WAITING: 'waiting',
+    //     ACTIVE: 'active',
+    //     COMPLETED: 'completed',
+    //     FAILED: 'faild',
+    //     DELAYED: 'delayed'
+    // },
     QUEUE_EVENTS : {
         ERROR: 'error',
         WAITING: 'waiting',
